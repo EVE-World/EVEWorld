@@ -143,10 +143,6 @@ Each paper artifact has a script under `scripts/reproduce/`:
 
 See [`docs/reproduction.md`](docs/reproduction.md) for inputs, compute requirements, and per-artifact protocols. Quantitative and qualitative results are on the [project page](https://eve-world.github.io/EVEWorld/) and in the paper; the protocols, metrics, and judge details are in [`docs/evaluation.md`](docs/evaluation.md).
 
-## Data and checkpoints
-
-`data/` holds the evaluation splits, per-clip metadata, and the judge prompts; the datasets themselves stay outside the repository. `checkpoints/` holds the download instructions, and `bash scripts/setup/download_models.sh` fetches the listed weights into `${EVEWORLD_CHECKPOINT_ROOT:-checkpoints}`, skipping files that already exist. See [`docs/data_preparation.md`](docs/data_preparation.md) and [`docs/checkpoints.md`](docs/checkpoints.md).
-
 ## Repository structure
 
 ```text
