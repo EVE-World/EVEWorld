@@ -1,8 +1,7 @@
 """Aggregation utilities of the Model Laziness Rate (MLR) protocol.
 
-The metric itself is the Model Laziness Rate (MLR): the share of sampled
-timestamps of a clip at which the adjusted instance count of the instruction's
-target deviates from its count in the conditioning state. A deviation is
+Model Laziness Rate (MLR) is the percentage of eligible clips with at least
+one persistent target-instance violation. A deviation is
 counted only when it persists over consecutive sampled timestamps
 (:mod:`eveworld.evaluation.mlr.persistence`) and when an under-count is not
 explained by robot occlusion (:mod:`eveworld.evaluation.mlr.occlusion`);
@@ -11,7 +10,7 @@ resolves to a target and the first sampled timestamp holds at least one
 instance of it; ineligible clips are excluded from both the numerator and the
 denominator.
 
-Every rate is reported in percent, so a clip with an MLR of 1.0 means 100%.
+Rates are reported in percent. Timestamp violation rates are separate diagnostics.
 """
 
 from __future__ import annotations
@@ -29,6 +28,7 @@ __all__ = [
     "coverage",
     "exact_mcnemar",
     "mean_mlr",
+    "timestamp_violation_rate",
     "wilson_interval",
 ]
 
@@ -54,7 +54,12 @@ def _clip_eligible(eligible: Any, size: int) -> np.ndarray:
 
 
 def clip_mlr(events: Sequence[bool] | np.ndarray, eligible: Any = True) -> float:
-    """Return the MLR of one clip in percent.
+    """Compatibility alias for the per-clip timestamp violation rate."""
+    return timestamp_violation_rate(events, eligible)
+
+
+def timestamp_violation_rate(events: Sequence[bool] | np.ndarray, eligible: Any = True) -> float:
+    """Return the percentage of eligible timestamps with a persistent event.
 
     ``events`` is a per-timestamp boolean sequence of shape ``(T,)`` that is
     ``True`` where an MLR event was detected; ``eligible`` is either a scalar
@@ -217,12 +222,12 @@ def _row_events(row: Mapping[str, Any]) -> np.ndarray:
 def aggregate(results: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     """Summarise per-clip MLR results into the reported figures.
 
-    Each row may carry an ``events`` array of shape ``(T,)`` (preferred), a
-    boolean ``event`` flag, or an ``mlr`` percentage, plus optional ``eligible``
-    and ``error`` fields. The returned mapping has exactly the keys ``mlr``
-    (mean over eligible clips, percent), ``coverage`` (share of eligible clips,
-    percent), ``num_eligible``, ``num_clips``, ``events`` (eligible clips with
-    at least one event) and ``errors`` (sorted error strings).
+    Rows carry persistent ``events`` or a binary ``event``, with optional
+    ``eligible`` and ``error`` fields. A legacy timestamp ``mlr`` percentage
+    can also establish whether a clip has any event. ``mlr`` in the summary
+    is the percentage of eligible clips with an event, as in Eq. (7).
+    ``mean_timestamp_violation_rate`` averages the available per-clip timestamp
+    diagnostics. Eligible rows without an outcome raise ``ValueError``.
     """
     rows = list(results)
     num_clips = len(rows)
@@ -231,7 +236,7 @@ def aggregate(results: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     rates: list[float] = []
     errors: list[str] = []
 
-    for row in rows:
+    for index, row in enumerate(rows):
         if not isinstance(row, Mapping):
             raise TypeError(f"result rows must be mappings, got {type(row).__name__}")
         error = row.get("error")
@@ -240,29 +245,34 @@ def aggregate(results: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
             continue
         if not bool(row.get("eligible", True)):
             continue
-        num_eligible += 1
         rate: float | None = None
         events = _row_events(row)
         if events.size > 0:
-            rate = clip_mlr(events, row.get("eligible", True))
-            if bool(np.any(events)):
-                with_events += 1
-        elif "event" in row:
+            rate = timestamp_violation_rate(events)
+            flagged = bool(np.any(events))
+            if row.get("event") is not None and bool(row["event"]) != flagged:
+                raise ValueError(f"event flag disagrees with events at clip {index}")
+        elif row.get("event") is not None:
             flagged = bool(row["event"])
-            rate = 100.0 if flagged else 0.0
-            if flagged:
-                with_events += 1
         elif row.get("mlr") is not None:
             rate = float(row["mlr"])
-            if rate > 0.0:
-                with_events += 1
+            flagged = rate > 0.0
         else:
-            continue
-        rates.append(rate)
+            raise ValueError(f"eligible clip {index} has no event outcome")
+        if rate is None:
+            diagnostic = row.get("timestamp_violation_rate", row.get("mlr"))
+            if diagnostic is not None:
+                rate = float(diagnostic)
+        if rate is not None:
+            if not math.isfinite(rate) or not 0.0 <= rate <= 100.0:
+                raise ValueError(f"invalid timestamp violation rate at clip {index}: {rate!r}")
+            rates.append(rate)
+        num_eligible += 1
+        with_events += int(flagged)
 
-    mean_mlr = float(np.mean(rates)) if rates else 0.0
     return {
-        "mlr": mean_mlr,
+        "mlr": 100.0 * with_events / num_eligible if num_eligible else 0.0,
+        "mean_timestamp_violation_rate": float(np.mean(rates)) if rates else None,
         "coverage": coverage(num_eligible, num_clips),
         "num_eligible": num_eligible,
         "num_clips": num_clips,

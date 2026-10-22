@@ -266,63 +266,24 @@ def write_run_files(plan: RunPlan) -> None:
 
 
 def smoke_step(plan: RunPlan) -> None:
-    """Run one joint-objective step on a tiny synthetic batch, on the CPU.
+    """Step the configured trainer on a small synthetic batch without writing a run."""
+    from eveworld.integrations.gigaworld import GigaWorldTrainer
 
-    The step covers the loss path of a training step - the weighted restoration term, the
-    windowed transport term and the warm-up and gate of their combination - on tensors of a
-    few cells each, so it needs neither the released backbone nor a GPU. A module the
-    checkout does not provide is reported and skipped rather than failing the dry run.
-    """
-    try:
-        import torch
-
-        from eveworld.methods.igr.loss import igr_loss
-        from eveworld.methods.joint import JointConfig, JointObjective
-        from eveworld.methods.tia.loss import contrastive_loss, windowed_scores
-    except ImportError as error:
-        print(f"smoke:        skipped: the loss modules are not importable ({error})")
-        return
-
-    generator = torch.Generator().manual_seed(plan.seed)
-    latent = 8
-    grid = (latent, latent)
-    sigma_low = float(cfg_value(plan.config, "method.sigma_low", 0.2))
-    sigma_high = float(cfg_value(plan.config, "method.sigma_high", 0.5))
-    sigma = torch.tensor([(sigma_low + sigma_high) / 2.0])
-    weight_map = torch.ones((latent, latent))
-    target = torch.randn((1, 4, 3, latent, latent), generator=generator)
-    prediction = (target + 0.05 * torch.randn(target.shape, generator=generator)).requires_grad_(True)
-    tokens = latent * latent
-    source = torch.randn((1, tokens, 8), generator=generator)
-    candidate = source + 0.2 * torch.randn(source.shape, generator=generator)
-    matches = torch.arange(tokens).unsqueeze(0)
-
-    restoration = igr_loss(prediction, target, weight_map, sigma)
-    scores = windowed_scores(
-        source,
-        candidate,
-        temperature=float(cfg_value(plan.config, "method.temperature", 0.07)),
-        window=7,
-        grid=grid,
+    trainer = GigaWorldTrainer(
+        config=plan.config,
+        output_dir=plan.output_dir,
+        device="cpu",
+        seed=plan.seed,
+        max_steps=plan.steps,
+        batch_size=1,
+        grad_accum=1,
+        optimizer_kind="adamw",
     )
-    transport = contrastive_loss(
-        scores,
-        matches,
-        temperature=float(cfg_value(plan.config, "method.temperature", 0.07)),
-    )
-    method = JointConfig.from_mapping(cfg_value(plan.config, "method", {}))
-    objective = JointObjective(method)
-    step = min(plan.steps - 1, method.warmup_steps) if method.warmup_steps else 0
-    total, stats = objective(restoration, transport, step=step, sigma=sigma)
-    total.backward()
-    grad = float(prediction.grad.abs().mean()) if prediction.grad is not None else 0.0
-    print(f"smoke:        synthetic step {step} on a 1x4x3x{latent}x{latent} latent, " f"grid {latent}x{latent}")
+    summary = trainer.dry_run(steps=1)
     print(
-        f"smoke:        igr {stats['igr']:.4f}, tia {stats['tia']:.4f}, "
-        f"total {stats['total']:.4f}, lambda_tia {stats['lambda_tia']:.4f}, "
-        f"lambda_tia_raw {stats['lambda_tia_raw']:.4f}"
+        f"smoke:        {trainer.method_kind}, transport={trainer.tia_enabled}, "
+        f"igr {summary['igr']:.4f}, tia {summary['tia']:.4f}, total {summary['total']:.4f}"
     )
-    print(f"smoke:        gradient of the restoration term {grad:.6f}")
     report_geometry(plan)
 
 
@@ -366,11 +327,19 @@ def train(plan: RunPlan) -> int:
     )
     trainer = instantiate(
         integration.GigaWorldTrainer,
-        config=model_config,
+        config=plan.config,
         dataset=dataset,
         output_dir=plan.output_dir,
         device=plan.device,
         resume=plan.resume,
+        max_steps=plan.steps,
+        seed=plan.seed,
+        optimizer_kind=cfg_value(plan.config, "train.optimizer", "came8bit"),
+        lr=float(cfg_value(plan.config, "train.lr", 4.32e-5)),
+        weight_decay=float(cfg_value(plan.config, "train.weight_decay", 0.01)),
+        batch_size=int(cfg_value(plan.config, "train.batch_size", 8)),
+        grad_accum=int(cfg_value(plan.config, "train.grad_accum", 8)),
+        save_every=int(cfg_value(plan.config, "train.save_every", 50)),
     )
     trainer.train()
     return 0
@@ -401,7 +370,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     except ImportError as error:
         print(f"error: the eveworld package is not importable: {error}", file=sys.stderr)
         return 2
-    except (FileNotFoundError, ValueError) as error:
+    except (FileNotFoundError, ValueError, NotImplementedError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
 

@@ -7,10 +7,9 @@ transport term is the contrastive loss of
 :class:`~eveworld.integrations.gigaworld.hooks.TIAHook` on the same forward: every step draws a
 clean batch and a disturbed batch of the same dataset and mixes them item by item with
 :func:`~eveworld.integrations.gigaworld.hooks.mix_batches`, so `method.p_dup` of
-`configs/paper/gigaworld/dreamgen/eveeval.yaml` is the share of the batch the transport term
+`configs/paper/gigaworld/dreamgen/eveworld.yaml` is the share of the batch the transport term
 trains on. The adapter of the disturbed items is trained jointly with the denoiser, which
-:meth:`GigaWorldTrainer._parameters` hands to one optimiser; LoRA is not applied here, it
-belongs to the FlowWAM integration.
+:meth:`GigaWorldTrainer._parameters` hands to one optimiser.
 
 The released recipe fine-tunes the backbone with CAME-8bit; :func:`build_optimizer` builds it
 when `came_pytorch` is importable and otherwise falls back to AdamW with the same schedule
@@ -283,6 +282,15 @@ class GigaWorldTrainer:
         gamma: float | None = None,
     ) -> None:
         self.run_config = config
+        self.method_kind = str(cfg_get(config, "method.kind", "eveworld")).strip().lower()
+        if self.method_kind not in {"sft", "igr", "tia", "eveworld"}:
+            raise ValueError(f"unknown method.kind: {self.method_kind!r}")
+        self.tia_enabled = self.method_kind in {"tia", "eveworld"}
+        if not self.tia_enabled and adapter is not None:
+            raise ValueError(f"{self.method_kind} does not use a TIA adapter")
+        weight_map = cfg_get(config, "method.weight_map", "binary_3x")
+        if weight_map != "binary_3x":
+            raise NotImplementedError(f"method.weight_map={weight_map!r} is not implemented; use 'binary_3x'")
         self.config = _as_config(config)
         self.dataset = dataset
         self.output_dir = Path(str(output_dir)).expanduser()
@@ -525,13 +533,15 @@ class GigaWorldTrainer:
         target = _checkpoint_path(path, directory, label)
         ensure_dir(target.parent)
         payload = {
-            "version": 1,
+            "version": 2,
+            "method_kind": self.method_kind,
+            "tia_enabled": self.tia_enabled,
             "step": label,
             "seed": self.seed,
             "config": self.config.to_dict(),
             "method": asdict(self.method),
             "model": self.model.denoiser.state_dict(),
-            "adapter": self.adapter.state_dict(),
+            "adapter": None if self.adapter is None else self.adapter.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "history": list(self.history),
             "torch_rng": None if self.generator is None else self.generator.get_state(),
@@ -561,6 +571,17 @@ class GigaWorldTrainer:
         """
         target = self._checkpoint_file(path)
         payload = torch.load(target, map_location="cpu", weights_only=False)
+        version = int(payload.get("version", 1))
+        if version not in {1, 2}:
+            raise ValueError(f"unsupported checkpoint version: {version}")
+        if version == 2:
+            if payload.get("method_kind") != self.method_kind or payload.get("tia_enabled") != self.tia_enabled:
+                raise ValueError(f"checkpoint method {payload.get('method_kind')!r} does not match {self.method_kind!r}")
+        adapter = payload.get("adapter") or {}
+        if not self.tia_enabled and adapter:
+            raise ValueError(f"checkpoint {target} contains a TIA adapter and cannot be loaded as {self.method_kind}")
+        if self.tia_enabled and not adapter:
+            raise ValueError(f"checkpoint {target} has no TIA adapter for {self.method_kind}")
         self._prepare(config=self._backbone_config(payload))
         state = payload.get("model") or {}
         if state:
@@ -574,7 +595,6 @@ class GigaWorldTrainer:
                     len(missing),
                     len(unexpected),
                 )
-        adapter = payload.get("adapter") or {}
         if adapter:
             self.adapter.load_state_dict(adapter)
         optimiser = payload.get("optimizer") or {}
@@ -646,12 +666,12 @@ class GigaWorldTrainer:
         mode = getattr(self.model, "train", None)
         if callable(mode):
             mode()
-        if self.adapter is None:
+        if self.tia_enabled and self.adapter is None:
             self.adapter = self._build_adapter()
             mover = getattr(self.adapter, "to", None)
             if callable(mover):
                 mover(self.device)
-        if self.hook is None:
+        if self.tia_enabled and self.hook is None:
             self.hook = self._build_hook()
         if self.optimizer is None:
             self.optimizer = build_optimizer(
@@ -835,11 +855,12 @@ class GigaWorldTrainer:
 
     def _micro_step(self, batch: Mapping[str, Any]) -> dict[str, Any]:
         """One micro-batch: the joint objective of its restoration and transport terms."""
-        self.hook.set_targets(batch.get("tia_cells"))
-        calls = int(self.hook.calls)
+        if self.hook is not None:
+            self.hook.set_targets(batch.get("tia_cells"))
+            calls = int(self.hook.calls)
         output = self.model.forward(batch, generator=self.generator)
         igr = self.model.igr_loss(output["pred"], output["target"], output["weight_map"], output["sigma"])
-        tia = self.hook.loss_tensor if int(self.hook.calls) != calls else None
+        tia = self.hook.loss_tensor if self.hook is not None and int(self.hook.calls) != calls else None
         total, stats = self.objective(igr, tia, step=int(self.step), sigma=output["sigma"])
         (total / float(self.grad_accum)).backward()
         return dict(stats)

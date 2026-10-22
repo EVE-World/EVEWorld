@@ -158,7 +158,7 @@ def sweep_grid(directory: Path, tau_occ: float, order: int, api: Sequence[Callab
         "num_eligible": eligible,
         "num_clips": int(result["num_clips"]),
         "event_share": 100.0 * flagged / eligible if eligible else 0.0,
-        "mean_clip_rate": float(result["mlr"]),
+        "mean_clip_rate": result["mean_timestamp_violation_rate"],
         "errors": result["errors"],
     }
 

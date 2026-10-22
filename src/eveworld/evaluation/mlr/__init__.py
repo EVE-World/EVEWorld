@@ -10,7 +10,7 @@ timestamps.
 
 from .detector import InstanceCounter, count_instances, expected_count
 from .merge import align_timestamps, build_metadata, merge_detections, merge_track_masks
-from .metric import aggregate, clip_mlr, coverage, mean_mlr
+from .metric import aggregate, clip_mlr, coverage, mean_mlr, timestamp_violation_rate
 from .occlusion import adjust_counts, is_occluded, occlusion_ratio, occlusion_table
 from .persistence import PersistenceResult, PersistenceTracker, detect_events
 from .vlm_audit import VLMAuditor, build_audit_prompt, load_prompt_template, parse_audit_response
@@ -38,4 +38,5 @@ __all__ = [
     "occlusion_ratio",
     "occlusion_table",
     "parse_audit_response",
+    "timestamp_violation_rate",
 ]

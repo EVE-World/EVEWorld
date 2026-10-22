@@ -24,13 +24,11 @@ the tracker from ``$SAM2_CHECKPOINT`` unless ``--sam2-checkpoint`` names one; bo
 them in ``generated_only/``. ``--metadata`` is the directory (or the file) of the per-clip
 metadata: the stem of a clip keys its entry and the ``target`` of the entry is the object the
 counter prompts with. The entry decides the prompt-level eligibility of the clip - the
-``eligible`` flag of DreamGenBench, a resolved target and mover on WorldArena, a resolved
-source and destination on RoboTwin, a resolved target elsewhere. A clip whose instruction
+``eligible`` flag of DreamGenBench, a resolved target and mover on WorldArena, a resolved target elsewhere. A clip whose instruction
 parsed is scored, and joins the MLR denominator when its first sampled timestamp holds at least
 one instance; a clip whose first frame shows no instance of the target, and one the metadata
 already rejects, are ineligible and leave the denominator. The ``coverage`` of every row is the
-eligible share of the benchmark, read from ``eligible_ids.json`` when the metadata directory
-publishes one, otherwise the eligible share of the run itself.
+eligible share of this evaluation run.
 
 ``--output`` receives the summary and ``--rows`` the per-clip rows, one JSON object per line in
 the schema of ``docs/item_level.md``; ``--rows`` defaults to ``--output`` with a
@@ -250,7 +248,7 @@ def prompt_eligible(entry: Any) -> bool:
     """Whether a metadata entry names an instruction the protocol can score.
 
     DreamGenBench marks the entry itself, WorldArena publishes the parsed target next to the
-    mover that acts on it, RoboTwin the source and the destination of the motion; an entry
+    mover that acts on it; an entry
     with none of those fields is eligible when its instruction parsed to a target.
     """
     if not isinstance(entry, dict):
@@ -471,6 +469,7 @@ def row_of(
         "events": flags,
         "event": any(flags),
         "mlr": None if error is not None else mlr,
+        "timestamp_violation_rate": None if error is not None else mlr,
         "coverage": None,
         "protocol": str(plan.protocol["protocol"]),
     }
@@ -492,7 +491,7 @@ def score_clip(
     import numpy as np
 
     from eveworld.data.transforms.video import load_video
-    from eveworld.evaluation.mlr import adjust_counts, align_timestamps, clip_mlr, detect_events, merge_track_masks
+    from eveworld.evaluation.mlr import adjust_counts, align_timestamps, detect_events, merge_track_masks, timestamp_violation_rate
     from eveworld.evaluation.mlr.occlusion import exempt_targets
 
     protocol = plan.protocol
@@ -548,7 +547,7 @@ def score_clip(
         counts=counts_list,
         exemptions=[bool(value) for value in adjusted != counts],
         events=flags,
-        mlr=clip_mlr(flags, True),
+        mlr=timestamp_violation_rate(flags, True),
     )
 
 
@@ -582,22 +581,14 @@ def score_clips(plan: EvalPlan, counter: Any, tracker: Any) -> list[dict[str, An
 def summarize(plan: EvalPlan, rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Aggregate the rows into the summary written to ``--output``.
 
-    The reported MLR is the share of the eligible clips with at least one event, the paper's
-    per-clip outcome; ``mean_clip_mlr`` is the pooled per-timestamp rate that
-    ``eveworld.evaluation.mlr.metric.clip_mlr`` returns for a single clip.
+    MLR is the percentage of eligible clips with an event. ``mean_clip_mlr``
+    remains an alias for the mean per-clip timestamp diagnostic.
     """
-    from eveworld.evaluation.mlr import coverage
+    from eveworld.evaluation.mlr import aggregate
     from eveworld.evaluation.mlr.metric import wilson_interval
 
-    errors = sorted(str(row["error"]) for row in rows if row.get("error"))
-    eligible = [row for row in rows if row["eligible"]]
-    with_events = [row for row in eligible if row["event"]]
-    run_coverage = coverage(len(eligible), len(rows))
-    published = plan.benchmark.get("coverage")
-    share = run_coverage if published is None else float(published)
-    rates = [float(row["mlr"]) for row in eligible if row.get("mlr") is not None]
-    mlr = 0.0 if not eligible else 100.0 * len(with_events) / len(eligible)
-    interval = wilson_interval(len(with_events), len(eligible))
+    result = aggregate(rows)
+    interval = wilson_interval(result["events"], result["num_eligible"])
     return {
         "config": str(plan.config_path),
         "name": plan.name,
@@ -608,15 +599,17 @@ def summarize(plan: EvalPlan, rows: list[dict[str, Any]]) -> dict[str, Any]:
         "pred_dir": str(plan.pred_dir),
         "selected_prompts": len(plan.clips),
         "records": len(rows),
-        "eligible": len(eligible),
-        "coverage": share,
-        "run_coverage": run_coverage,
-        "events": len(with_events),
-        "mlr": mlr,
-        "mean_clip_mlr": 0.0 if not rates else sum(rates) / len(rates),
+        "eligible": result["num_eligible"],
+        "coverage": result["coverage"],
+        "run_coverage": result["coverage"],
+        "reference_coverage": plan.benchmark.get("coverage"),
+        "events": result["events"],
+        "mlr": result["mlr"],
+        "mean_timestamp_violation_rate": result["mean_timestamp_violation_rate"],
+        "mean_clip_mlr": result["mean_timestamp_violation_rate"] or 0.0,
         "wilson_95": [float(interval[0]), float(interval[1])],
         "benchmark": dict(plan.benchmark),
-        "errors": errors,
+        "errors": result["errors"],
     }
 
 
