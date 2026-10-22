@@ -1,15 +1,5 @@
 # Evaluation
 
-Every reported number comes from generated clips scored by the harness under
-[`src/eveworld/evaluation/`](../src/eveworld/evaluation/). The protocols are
-frozen: detector thresholds, sampled timestamps, judging settings and guidance
-weights were fixed on development data before the final runs, so a comparison
-is only meaningful when both sides use the same settings. Each section below
-gives what the metric measures, the protocol behind the released runs, the
-implementing module, and the command that runs it. Generation is described in
-[`inference.md`](inference.md); the end-to-end wrappers live in
-`scripts/reproduce/` and are documented in [`reproduction.md`](reproduction.md).
-
 ## Model Laziness Rate
 
 **What it measures.** MLR is the percentage of detector-eligible rollouts that
@@ -48,7 +38,7 @@ instance (`N_0(x) > 0`); a clip whose first frame shows no prompted object is
 ineligible and leaves both numerator and denominator. Coverage is reported
 next to every MLR value for that reason. All models in a comparison are scored
 on the same eligible set, released per benchmark under `data/metadata/`:
-DreamGenBench, WorldArena and RoboTwin each ship the eligible request ids and
+DreamGenBench and WorldArena each ship the eligible request ids and
 their counts, and `scripts/prepare/build_mlr_metadata.py` regenerates them
 from the raw manifests. The number of sampled timestamps is not fixed by the
 paper; the released protocol samples 24 timestamps per clip in round fashion.
@@ -85,7 +75,7 @@ in [`configs/eval/mlr/`](../configs/eval/mlr/) and in
 | [`mlr/merge.py`](../src/eveworld/evaluation/mlr/merge.py) | `merge_detections`, `merge_track_masks`, `align_timestamps`, `build_metadata` producing `expected_counts`, `timestamps`, `instances`. |
 | [`mlr/occlusion.py`](../src/eveworld/evaluation/mlr/occlusion.py) | `occlusion_ratio`, `is_occluded`, `occlusion_table`, `adjust_counts`. |
 | [`mlr/persistence.py`](../src/eveworld/evaluation/mlr/persistence.py) | `PersistenceTracker`, `PersistenceResult`, `detect_events`. |
-| [`mlr/metric.py`](../src/eveworld/evaluation/mlr/metric.py) | `clip_mlr`, `mean_mlr`, `coverage`, `aggregate`. |
+| [`mlr/metric.py`](../src/eveworld/evaluation/mlr/metric.py) | `timestamp_violation_rate`, `clip_mlr` (legacy alias), `mean_mlr`, `coverage`, `aggregate`. |
 | [`mlr/vlm_audit.py`](../src/eveworld/evaluation/mlr/vlm_audit.py) | Optional vision-language audit of the flagged records, driven by `data/prompts/vlm_audit.txt`. |
 
 **Command.** The summary written to `--output` carries `selected_prompts`,
@@ -101,8 +91,7 @@ python scripts/evaluate/eval_mlr.py \
 ```
 
 `--limit` caps the number of clips for a smoke run. Use
-`configs/eval/mlr/worldarena.yaml` and `configs/eval/mlr/robotwin.yaml` for
-the other two protocols; the pair comparison between two models on the common
+`configs/eval/mlr/worldarena.yaml` for WorldArena; the pair comparison between two models on the common
 eligible set uses `exact_mcnemar(discordant_a, discordant_b)` on the
 discordant clip counts.
 
@@ -169,48 +158,6 @@ cells. The three generalization splits of the benchmark are judged in the
 same pass and summarized separately as the Environment, Object and Behavior
 columns of the ablation table.
 
-## RoboTwin reconstruction metrics
-
-**What it measures.** Cross-backbone transfer is scored on the held-out
-RoboTwin episodes with four reconstruction metrics and MLR. PSNR and SSIM
-measure per-frame fidelity of the generated rollout against the recorded one
-and are averaged over the clip; LPIPS measures perceptual distance on the same
-frames; Flow-EPE is the end-point error between the optical flows that RAFT
-extracts from the generated and the recorded rollout, and it is the metric
-that isolates motion fidelity from appearance.
-
-**Protocol.** The evaluation set is 250 rows: 50 tasks times episodes 45-49,
-with the episode-45 slice held apart as the development split used for layer
-and checkpoint selection. Clips are generated from the FlowWAM backbone with
-`--flow-cond robot_only --cfg-scale 5.0 --steps 40 --tia-inject off
---full-traj direct --seed 42`, so the condition is the robot-only flow of the
-recorded trajectory and the target is reproduced by the model. PSNR is
-computed with a data range of 255 on per-frame values before averaging, and
-Flow-EPE averages the per-pixel error over pixels with a valid flow. MLR uses
-the same frozen protocol as above, with a 24-timestamp sample per clip.
-
-**Modules.**
-
-| Module | Contents |
-|---|---|
-| [`robotwin/psnr.py`](../src/eveworld/evaluation/robotwin/psnr.py) | `psnr`, `psnr_clip`, `ssim_clip`, `lpips_clip`. |
-| [`robotwin/flow_epe.py`](../src/eveworld/evaluation/robotwin/flow_epe.py) | `compute_flow`, `flow_epe`, `epe_map`. |
-| [`robotwin/evaluate.py`](../src/eveworld/evaluation/robotwin/evaluate.py) | `evaluate_clip`, `aggregate`, `main`; the aggregate is written to `aggregate/table5.json`. |
-
-**Command.** `--pred-dir` holds the generated clips, `--target-dir` the
-recorded episodes; both are matched on the request id.
-
-```bash
-python scripts/evaluate/eval_robotwin.py \
-    --config configs/eval/mlr/robotwin.yaml \
-    --pred-dir outputs/robotwin_eveworld/generated_only \
-    --target-dir data/robotwin/heldout \
-    --output outputs/evaluation/item_level/robotwin/table5.json
-```
-
-The reproduction wrapper for this table is
-`scripts/reproduce/table5_robotwin.sh`.
-
 ## EWMBench
 
 **What it measures.** EWMBench scores the AgiBot post-training transfer set
@@ -238,7 +185,7 @@ scores uses the same frozen protocol.
 
 | Module | Contents |
 |---|---|
-| [`ewmbench/evaluate.py`](../src/eveworld/evaluation/ewmbench/evaluate.py) | `load_scores`, `evaluate`, `aggregate`, `main`, a thin adapter over the external benchmark repository. |
+| [`ewmbench/evaluate.py`](../src/eveworld/evaluation/ewmbench/evaluate.py) | `load_scores`, `evaluate`, `aggregate`, `main`, aggregation of externally scored predictions. |
 
 The metric keys reported by the adapter are `motion`, `semantics`, `dyn`,
 `hsr`, `ndtw`, `scene` and `overall`; the paper's tables label the fourth
@@ -307,9 +254,9 @@ budget.
 
 | Module | Contents |
 |---|---|
-| [`pbench/evaluate.py`](../src/eveworld/evaluation/pbench/evaluate.py) | `load_scores`, `evaluate`, `aggregate`, `main`, a thin adapter over the external benchmark repository. |
+| [`pbench/evaluate.py`](../src/eveworld/evaluation/pbench/evaluate.py) | `load_scores`, `evaluate`, `aggregate`, `main`, aggregation of externally scored predictions. |
 
-**Command.** The `--pred-dir` tree holds one directory per horizon tier;
+**Command.** The `--pred-dir` tree holds externally scored predictions, one directory per horizon tier;
 the horizon sweep has no item-level directory, so the run keeps its summary in
 the scratch tree.
 
@@ -329,13 +276,11 @@ own flags:
 |---|---|
 | `--config` | Evaluation config under `configs/eval/`. |
 | `--pred-dir` | Directory of generated clips or the benchmark layout. |
-| `--target-dir` | Recorded reference clips, for the reconstruction metrics. |
 | `--metadata` | Detector-eligible metadata and prompt targets. |
 | `--output` | Destination file for the aggregated summary. |
 | `--limit` | Cap the number of scored clips. |
 
-The four item-level benchmarks, DreamGenBench, WorldArena, EWMBench and
-RoboTwin, write per-clip records under
+DreamGenBench, WorldArena and EWMBench write per-clip records under
 `outputs/evaluation/item_level/<benchmark>/` with the aggregate beside them,
 so a table cell can be traced back to the clip that produced it. The
 end-to-end wrappers in `scripts/reproduce/` chain generation, judging and

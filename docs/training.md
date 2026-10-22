@@ -1,60 +1,47 @@
 # Training
 
-EVEWorld is a supervision recipe, so training means fine-tuning one of the two
-backbones with the joint objective below. Three arms are trained for the paper:
-GigaWorld-0 on the DreamGen GR1 split for DreamGenBench, GigaWorld-0 on AgiBot
-for the EWMBench transfer, and FlowWAM on RoboTwin for the cross-backbone
-transfer. Each arm shares its initialization, data and optimization budget with
-the control it is compared against; only the loss differs.
+EVEWorld fine-tunes GigaWorld-0 on DreamGen GR1 and AgiBot with the joint objective below.
 
 ## Recipes
 
-| Setting | GigaWorld-0 (DreamGenBench / AgiBot) | FlowWAM (RoboTwin) |
-|---|---|---|
-| Initialization | Video-Pretrain-2B checkpoint. | Released FlowWAM Stage-1 checkpoint on Wan2.2-TI2V-5B. |
-| Trainable | Full transformer. | Rank-32 LoRA on the DiT. |
-| Optimizer | CAME-8bit. | AdamW. |
-| Learning rate | `4.32e-5` (`2^-14.5`). | `1e-4`. |
-| Weight decay | `0.01`. | `0.01`. |
-| Micro batch | 8. | 8. |
-| Gradient accumulation | 8. | 1. |
-| Effective batch | 64. | 8. |
-| Steps | 250 on DreamGenBench, 50 on AgiBot. | 1,128 (4 epochs over 2,250 episodes). |
-| Resolution | `480 x 768` / `480 x 640`. | `480 x 640`. |
-| Clip | 93 frames at 16 FPS. | 29 frames at 24 FPS. |
-| TIA block | 23. | 12. |
-| `lambda_TIA` | 0.5, warmed up over 20 steps. | 0.1, constant. |
-| Noise gate | `sigma in [0.2, 0.5]`. | None. |
+| Setting | GigaWorld-0 (DreamGenBench / AgiBot) |
+|---|---|
+| Initialization | Video-Pretrain-2B checkpoint. |
+| Trainable | Full transformer. |
+| Optimizer | CAME-8bit. |
+| Learning rate | `4.32e-5` (`2^-14.5`). |
+| Weight decay | `0.01`. |
+| Micro batch | 8. |
+| Gradient accumulation | 8. |
+| Effective batch | 64. |
+| Steps | 250 on DreamGenBench, 50 on AgiBot. |
+| Resolution | `480 x 768` / `480 x 640`. |
+| Clip | 93 frames at 16 FPS. |
+| TIA block | 23. |
+| `lambda_TIA` | 0.5, warmed up over 20 steps. |
+| Noise gate | `sigma in [0.2, 0.5]`. |
 
 The released configurations put these values under the same keys; see
-the three `eveworld.yaml` files under `configs/paper/`
-([`gigaworld/dreamgen`](../configs/paper/gigaworld/dreamgen/eveworld.yaml),
-[`gigaworld/agibot`](../configs/paper/gigaworld/agibot/eveworld.yaml) and
-[`flowwam/robotwin`](../configs/paper/flowwam/robotwin/eveworld.yaml)).
+the `eveworld.yaml` files under `configs/paper/`
+([`gigaworld/dreamgen`](../configs/paper/gigaworld/dreamgen/eveworld.yaml) and
+[`gigaworld/agibot`](../configs/paper/gigaworld/agibot/eveworld.yaml)).
 The Standard SFT baselines use the same budget with a uniform loss: 250 steps
-at effective batch 64 on DreamGenBench, 50 steps on AgiBot, and the same
-1,128-step LoRA on RoboTwin.
+at effective batch 64 on DreamGenBench and 50 steps on AgiBot.
 
-No exponential moving average is applied anywhere. Every reported number comes
-from the raw training checkpoint at the step the recipe specifies, so the
-evaluated weights are exactly the ones the trainer writes.
+`method.kind` selects SFT, IGR only, TIA only or EVEWorld. SFT and IGR-only
+runs do not attach a TIA adapter; TIA-only and EVEWorld attach it in both
+training and inference.
 
 ## Splits
 
-Every configuration names the manifest of its run under `data.split`, and no
-evaluation clip is ever trained on. The GigaWorld-0 DreamGen arms read
+Every configuration names its manifest under `data.split`. The GigaWorld-0 DreamGen arms read
 [`data/splits/dreamgen/train.txt`](../data/splits/dreamgen/train.txt), the 92
 post-training clips; the 12 clips of
-[`data/splits/dreamgen/val.txt`](../data/splits/dreamgen/val.txt) were held out of
-that set and select the checkpoint the paper reports; and the 126 prompts of
+[`data/splits/dreamgen/val.txt`](../data/splits/dreamgen/val.txt) form the development set; the 126 prompts of
 [`data/splits/dreamgen/test.txt`](../data/splits/dreamgen/test.txt) are generated
 but never trained on. The AgiBot arm reads the 777 clips of
 `data/splits/agibot/train.txt`, which the preparation script has already filtered
-against the 21 EWMBench test episodes. The FlowWAM arm names
-`data/splits/robotwin/heldout.txt`, the 250 held-out episodes: training covers the
-remaining 2,250 episodes of the same 50 tasks, so no training clip carries an
-episode number above 44 and the RoboTwin numbers stay disjoint from what the model
-saw.
+against the 21 EWMBench test episodes.
 
 ## Objective
 
@@ -139,8 +126,7 @@ own hidden features.
 On GigaWorld-0 the TIA term is not applied at full weight from the first step:
 `lambda_TIA` warms up linearly from 0 to 0.5 over the first 20 steps, and the
 noise gate restricts the term to sampled noise levels `sigma in [0.2, 0.5]`,
-where the transport is informative but the input is not yet clean. FlowWAM
-keeps `lambda_TIA = 0.1` with no gate. The released values are
+where the transport is informative but the input is not yet clean. The values are
 `method.warmup_steps`, `method.sigma_low`, `method.sigma_high` and
 `method.gated`; the files
 [`ablations/tia/warmup.yaml`](../configs/ablations/tia/warmup.yaml) and
@@ -161,7 +147,7 @@ l_star  = arg min_l (1 / |V|) sum_t || u_hat_t - u_t ||_2
 ```
 
 Blocks 8 to 26 are swept; the probe selects block 23 for GigaWorld-0 and
-AgiBot and block 12 for FlowWAM. The sweep is configured by
+AgiBot. The sweep is configured by
 [`ablations/tia/layer_sweep.yaml`](../configs/ablations/tia/layer_sweep.yaml),
 which reads the same annotations the corruption builder uses. The probe
 artifacts are written under `experiments/analysis/tia_layer_probe/`.
@@ -171,18 +157,9 @@ TIA itself is implemented in
 builder and the restoration loss in
 [`../src/eveworld/methods/igr`](../src/eveworld/methods/igr).
 
-## FlowWAM LoRA
-
-The FlowWAM arm freezes the backbone and trains a rank-32 LoRA adapter on the
-DiT attention and feed-forward projections. The adapter keeps alpha 1.0 and
-targets `q,k,v,o,ffn.0,ffn.2` in the DiT blocks. Training starts from the
-released Stage-1 checkpoint on top of Wan2.2-TI2V-5B, runs four epochs over the
-2,250 training episodes (1,128 steps at batch 8), and keeps the final-epoch
-checkpoint, which is the one evaluated on the 250 held-out episodes.
-
 ## Commands
 
-Both entry points read one YAML config and take the same overrides. Run them
+The entry point reads one YAML config and accepts overrides. Run it
 from the repository root:
 
 ```bash
@@ -191,9 +168,6 @@ python scripts/train/train_gigaworld.py \
 
 python scripts/train/train_gigaworld.py \
     --config configs/paper/gigaworld/agibot/eveworld.yaml
-
-python scripts/train/train_flowwam.py \
-    --config configs/paper/flowwam/robotwin/eveworld.yaml
 ```
 
 The controls and the ablation arms use the same entry point with a different
@@ -204,7 +178,6 @@ python scripts/train/train_gigaworld.py --config configs/paper/gigaworld/dreamge
 python scripts/train/train_gigaworld.py --config configs/paper/gigaworld/dreamgen/igr.yaml
 python scripts/train/train_gigaworld.py --config configs/paper/gigaworld/dreamgen/tia.yaml
 python scripts/train/train_gigaworld.py --config configs/ablations/igr/wmap_binary3x.yaml
-python scripts/train/train_flowwam.py --config configs/paper/flowwam/robotwin/tia.yaml
 ```
 
 | Flag | Meaning |
@@ -223,15 +196,12 @@ reading the data roots:
 ```bash
 python scripts/train/train_gigaworld.py \
     --config configs/paper/gigaworld/dreamgen/eveworld.yaml --dry-run
-python scripts/train/train_flowwam.py \
-    --config configs/paper/flowwam/robotwin/eveworld.yaml --dry-run
 ```
 
-A run writes `checkpoints/<run>/checkpoint-<step>.pt` every
-`train.save_every` steps (50 for GigaWorld-0, 100 for FlowWAM) together
-with a `trainer_state.json` that records the step, the seed and the
-resolved config. The checkpoint root is `EVEWORLD_CHECKPOINT_ROOT` when
-set, and `checkpoints/` otherwise; the naming and the per-row checkpoint
+A run writes `<output-dir>/checkpoint-<step:06d>.pt` every
+`train.save_every` steps (50 by default) together
+with `latest.json` pointing to the newest checkpoint. The run directory is
+set by `output_dir`; the naming and the per-row checkpoint
 selection are described in [`checkpoints.md`](checkpoints.md). Resuming
 with `--resume` restarts from the newest checkpoint in the run directory.
 

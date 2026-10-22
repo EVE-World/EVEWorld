@@ -2,18 +2,15 @@
 
 Generation is evaluation-only work: the instruction parser, the grounder and
 the corruption builder belong to training, and at sampling time the model
-receives the first frame, the instruction and the benchmark-specific control
-input. For RoboTwin that control input is the robot-only optical flow; for the
-other arms the first frame and the instruction are enough.
+receives the first frame and the instruction.
 
 ## Entry points
 
 | Script | Backbone | Arms |
 |---|---|---|
 | [`scripts/inference/infer_gigaworld.py`](../scripts/inference/infer_gigaworld.py) | GigaWorld-0. | DreamGenBench, WorldArena 1.0, EWMBench, PBench, the CFG grid. |
-| [`scripts/inference/infer_flowwam.py`](../scripts/inference/infer_flowwam.py) | FlowWAM. | The held-out RoboTwin episodes. |
 
-Both read the `inference:` block of their config and accept overrides for the
+The script reads the `inference:` block of its config and accepts overrides for the
 checkpoint, the step count, the guidance scale and the output directory. The
 request list comes from the split recorded in the config's `data.split` field,
 which is [`data/splits/dreamgen/test.txt`](../data/splits/dreamgen/test.txt)
@@ -29,14 +26,6 @@ checkpoint selection and is not part of the reported numbers.
 | WorldArena 1.0 | Raw step-250. | 30 | 7.0 | 93 frames at `480 x 768`, 16 FPS. | Zero-shot prompts. |
 | EWMBench (AgiBot) | Raw step-50. | 30 | 7.0 | 93 frames at `480 x 640`, 16 FPS. | Benchmark seeds 42 / 43 / 44. |
 | PBench | Raw step-250. | 30 | 7.0 | 61 to 477 frames at 16 FPS. | Seven horizon tiers. |
-| RoboTwin | Final-epoch LoRA. | 40 | 5.0 | 121 frames at `480 x 640`, 24 FPS. | Robot-only flow, seed 42, direct full trajectory. |
-
-The RoboTwin rows are generated with `--flow-cond robot_only`,
-`--tia-inject off`, `--full-traj direct` and `--seed 42`; the same values sit
-in the config as `inference.flow_cond` and `inference.tia_inject`. The FlowWAM
-entry point generates 121 frames at `640 x 480` and 24 FPS, and its defaults
-are 25 denoising steps with `--sigma-shift 5.0`, so the RoboTwin rows override
-the step count to 40.
 
 CFG itself is studied separately over six training steps and four guidance
 weights at a fixed generation seed, with the output written under
@@ -56,9 +45,6 @@ weights at a fixed generation seed, with the output written under
 | `--output-dir` | Override `output_dir`; defaults to the value in the config. |
 | `--limit` | Cap the number of clips, for smoke runs. |
 | `--shard-index`, `--num-shards` | Generate one slice of the request list. |
-
-The FlowWAM entry point adds `--flow-cond`, `--tia-inject` (`on` or `off`),
-`--full-traj` (`on`, `off` or `direct`) and `--seed`.
 
 ## Output layout
 

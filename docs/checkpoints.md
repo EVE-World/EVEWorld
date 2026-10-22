@@ -2,8 +2,7 @@
 
 [`scripts/setup/download_models.sh`](../scripts/setup/download_models.sh) is
 the single entry point for every weight the repository reads: the two
-GigaWorld-0 video backbones, the Wan2.2-TI2V-5B base model, the released
-FlowWAM checkpoints, the GroundingDINO locator, the SAM2.1 tracker and the
+GigaWorld-0 video backbones, the GroundingDINO locator, the SAM2.1 tracker and the
 local Qwen judge. Everything lands under
 `${EVEWORLD_CHECKPOINT_ROOT:-checkpoints}`, so a single variable moves the
 whole tree onto a larger volume.
@@ -17,9 +16,6 @@ checkpoint added in one file has to be added in the other.
 |---|---|---|---|
 | `giga-world-0-video-pretrain-2b` | `open-gigaai/GigaWorld-0-Video-Pretrain-2b` | `giga-world-0-video-pretrain-2b/` | `transformer/config.json`, `transformer/diffusion_pytorch_model.safetensors` |
 | `giga-world-0-video-gr1-2b` | `open-gigaai/GigaWorld-0-Video-GR1-2b` | `giga-world-0-video-gr1-2b/` | the same two files |
-| `wan2.2-ti2v-5b` | `Wan-AI/Wan2.2-TI2V-5B-Diffusers` | `wan2.2-ti2v-5b/` | the whole repository |
-| `flowwam-stage1` | `YixiangChen/FlowWAM` | `flowwam/` | `flowwam_worldarena_stage1.safetensors` |
-| `flowwam-robotwin` | `YixiangChen/FlowWAM` | `flowwam/` | `flowwam_robotwin.safetensors`, `flowwam_robotwin_action_norm_stats.npz` |
 | `grounding-dino-swin-t-ogc` | `ShilongLiu/GroundingDINO` | `groundingdino/` | `groundingdino_swint_ogc.pth`, `GroundingDINO_SwinT_OGC.cfg.py` |
 | `sam2.1-hiera-large` | `facebook/sam2.1-hiera-large` | `sam2/` | `sam2.1_hiera_large.pt`, `sam2.1_hiera_l.yaml` |
 | `sam2.1-hiera-tiny` | `facebook/sam2.1-hiera-tiny` | `sam2/` | `sam2.1_hiera_tiny.pt`, `sam2.1_hiera_t.yaml` |
@@ -28,16 +24,12 @@ checkpoint added in one file has to be added in the other.
 The two GigaWorld-0 entries are the pretrained and the GR1 variant of the same
 video backbone. Every recipe under `configs/paper/gigaworld/` initialises from
 `Video-Pretrain-2B`, so the pretrained entry is the one training needs; the GR1
-variant is fetched for completeness. `wan2.2-ti2v-5b` is the Diffusers-format
-base model that the FlowWAM Stage-1 weights are loaded on top of, and the two
-FlowWAM entries read the same Hub repository with different file lists, so
-`--only flowwam-stage1` and `--only flowwam-robotwin` can be run independently
-and both write into `flowwam/`. Both SAM2.1 sizes are downloaded;
+variant is fetched for completeness. Both SAM2.1 sizes are downloaded;
 `SAM2_CHECKPOINT` selects the one the tracker loads, and the MLR defaults use
 the tiny pair.
 
 An entry whose file list is empty downloads the whole repository, which is what
-happens for the Wan base model and the Qwen judge.
+happens for the Qwen judge.
 
 ## Running the downloader
 
@@ -87,11 +79,6 @@ checkpoints/
 │       └── diffusion_pytorch_model.safetensors
 ├── giga-world-0-video-gr1-2b/
 │   └── transformer/
-├── wan2.2-ti2v-5b/
-├── flowwam/
-│   ├── flowwam_worldarena_stage1.safetensors
-│   ├── flowwam_robotwin.safetensors
-│   └── flowwam_robotwin_action_norm_stats.npz
 ├── groundingdino/
 │   ├── groundingdino_swint_ogc.pth
 │   └── GroundingDINO_SwinT_OGC.cfg.py
@@ -110,10 +97,10 @@ loader expects.
 ## Run checkpoints
 
 Training produces its own checkpoints in the run's output directory: a
-`checkpoint-<step>.pt` every `train.save_every` steps (50 for GigaWorld-0, 100
-for FlowWAM) together with a `trainer_state.json` that records the step, the
-seed and the resolved config. `--resume` restarts from the newest checkpoint in
-the directory and `--output-dir` moves the directory; both flags are described
+`checkpoint-<step:06d>.pt` every `train.save_every` steps (50 by default),
+with the step, seed, method and optimizer state inside. `latest.json` points to
+the newest checkpoint; `config.yaml` records the resolved run config. `--resume`
+restarts from the newest checkpoint in the directory and `--output-dir` moves it; both flags are described
 in [`training.md`](training.md), which also covers the run layout. The released
 tree above is read-only and no script writes into it.
 
@@ -126,17 +113,12 @@ tree above is read-only and no script writes into it.
 | Table 1, Table 3 and Table 6, EVEWorld | `Video-Pretrain-2B` | raw step 250 |
 | Table 6, IGR only and TIA only | `Video-Pretrain-2B` | raw step 250 |
 | Table 4, AgiBot transfer (EWMBench) | `Video-Pretrain-2B` | raw step 50 |
-| Table 5, RoboTwin transfer | released FlowWAM Stage-1 on `wan2.2-ti2v-5b` | the final epoch of the 1,128-step (four-epoch) rank-32 LoRA, screened on the episode-45 development slice |
 
-No stable-EMA weights are evaluated anywhere in the paper. Every GigaWorld-0
+The trainer saves raw weights without EMA. Every GigaWorld-0
 row scores the raw training checkpoint at the step the config sets in
 `train.max_steps`, so a run is identified by its step and seed alone. The
 checkpoint-step study in `configs/ablations/checkpoint/steps.yaml` re-scores
 steps 150 and 250 over the seed range 1-70 instead of averaging weights.
-Which checkpoint produced a published number is recoverable from the run's
-`trainer_state.json` and from the settings each evaluator records beside its
-item-level output under `outputs/evaluation/item_level/<benchmark>/` — see
-[`reproduction.md`](reproduction.md).
 
 ## Verifying a download
 

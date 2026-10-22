@@ -1,6 +1,6 @@
 # Reproduction
 
-`scripts/reproduce/` holds one wrapper per paper artefact. Each wrapper is a
+`scripts/reproduce/` contains the wrappers listed below. Each wrapper is a
 thin driver: it resolves the repository root, exports the paths the stages
 need, and chains data preparation, training, generation, judging and metrics
 with `set -euo pipefail`, so the run stops at the first failing stage. The
@@ -22,13 +22,11 @@ re-run cheaply because it skips files that already exist:
 
 ```bash
 bash scripts/setup/clone_gigaworld.sh
-bash scripts/setup/clone_flowwam.sh
 bash scripts/setup/download_models.sh
 ```
 
-The three conda environments of [`installation.md`](installation.md) are
-needed as well: the GigaWorld-0 arms run in `gigaworld`, the FlowWAM arm in
-`flowwam`, and the judging and metric stages in `eveworld-eval`. Every wrapper
+The environments in [`installation.md`](installation.md) are
+`gigaworld` for training and generation and `eveworld-eval` for evaluation. Every wrapper
 reads its settings from `configs/`, so a variant can be reproduced by pointing
 the wrapper's config variable at a different file under `configs/paper/`.
 
@@ -39,14 +37,13 @@ the wrapper's config variable at a different file under `configs/paper/`.
 | Table 1 `tab:dreamgen_overall` | `scripts/reproduce/table1_dreamgen.sh` | DreamGenBench, 126 prompts. |
 | Table 3 `tab:worldarena` | `scripts/reproduce/table3_worldarena.sh` | WorldArena 1.0, 1,000 prompts. |
 | Table 4 `tab:agibot_transfer` | `scripts/reproduce/table4_ewmbench.sh` | AgiBot, 777 clips. |
-| Table 5 `tab:flowwam_transfer` | `scripts/reproduce/table5_robotwin.sh` | RoboTwin, 250 held-out episodes. |
 | Table 6 `tab:component_ablation` | `scripts/reproduce/table6_ablation.sh` | DreamGenBench, four arms. |
 | Figure 4 `fig:cfg` | `scripts/reproduce/figure4_cfg.sh` | DreamGenBench, 24 grid cells. |
 
 Every wrapper writes item-level records and an aggregate under
 `${EVEWORLD_RESULTS_ROOT:-outputs/evaluation}/item_level/<benchmark>/`, named
 after the arm it belongs to, so a table cell can be traced back to its clip.
-The directories are `dreamgen`, `worldarena`, `ewmbench` and `robotwin`, one
+The directories are `dreamgen`, `worldarena` and `ewmbench`, one
 per benchmark the wrappers cover.
 
 ## Environment variables you will need
@@ -62,10 +59,9 @@ The variables below are the ones the stages read;
 | `HF_HOME` | Hugging Face cache, including the offline backbone download. |
 | `GIGA_MODELS_DIR` | GigaModels source tree used by the GigaWorld-0 arms. |
 | `GIGA_MODELS_CACHE`, `GIGA_MODELS_REPO_CACHE` | Kernel and repository caches of GigaModels. |
-| `FLOWWAM_ROOT` | FlowWAM checkout under `third_party/FlowWAM`. |
 | `GROUNDING_DINO_CONFIG`, `GROUNDING_DINO_WEIGHTS` | Detector of the MLR protocol. |
 | `SAM2_CHECKPOINT` | SAM2 tracker weights used for the masks and the robot mask. |
-| `DREAMGEN_DATA_ROOT`, `AGIBOT_DATA_ROOT`, `ROBOTWIN_DATA_ROOT`, `WORLDARENA_DATA_ROOT` | Source media of the four evaluation sets. |
+| `DREAMGEN_DATA_ROOT`, `AGIBOT_DATA_ROOT`, `WORLDARENA_DATA_ROOT` | Source media for preparation and evaluation. |
 | `QWEN_BASE_URL`, `QWEN_IF_MODEL` | Endpoint and local model directory of the Qwen judge. |
 | `DASHSCOPE_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY` | API keys of the two judges; the first of each pair that is set wins. |
 | `GEMINI_BASE_URL`, `DIFROST_GENAI_BASE_URL`, `DIFROST_API_TOKEN`, `DIFROST_HOST`, `DIFROST_THINKING_LEVEL` | Endpoint and gateway settings of the Gemini judge. |
@@ -130,28 +126,6 @@ bash scripts/reproduce/table4_ewmbench.sh
 The config and the scorer label the fourth component `hsr`; the paper's tables
 call it HSD.
 
-## Table 5: RoboTwin transfer
-
-**Input.** The 250 held-out RoboTwin episodes (50 tasks at episodes 45-49) and
-the FlowWAM backbone. Post-training uses the 2,250 training episodes of
-episodes 0-44, and the disjoint episode-45 dev slice screens the checkpoint
-before the held-out run.
-
-**Compute.** A rank-32 LoRA fine-tune for 1,128 steps (4 epochs) at 8 frames
-per batch on 8 GPUs, then 250 clips per variant at 40 denoising steps and CFG
-5.0 with the robot-only flow condition. PSNR, SSIM, LPIPS and Flow-EPE are
-computed per clip, Flow-EPE through RAFT on both rollouts.
-
-**Command.**
-
-```bash
-bash scripts/reproduce/table5_robotwin.sh
-```
-
-The wrapper writes the aggregate to
-`outputs/evaluation/item_level/robotwin/table5.json`, the same file the
-evaluator produces by hand.
-
 ## Table 6: Component ablation
 
 **Input.** The DreamGenBench split and the same eligible set as Table 1. The
@@ -198,7 +172,7 @@ under `experiments/analysis/`; they reuse the wrappers above for generation.
 
 | Study | Configs | Reads |
 |---|---|---|
-| IGR corruption and weight-map design | `configs/ablations/igr/` | `p_dup.yaml`, `wmap_binary3x.yaml`, `wmap_legacy_multilevel.yaml`, `wmap_pathloc2x.yaml`, `wmap_pathloc3x.yaml`, `wmap_interaction2x.yaml`. |
+| IGR corruption and weight-map design | `configs/ablations/igr/` | `p_dup.yaml`, `wmap_binary3x.yaml`. |
 | TIA layer, gate and window | `configs/ablations/tia/` | `layer_sweep.yaml`, `gate.yaml`, `warmup.yaml`, `window.yaml`, `temperature.yaml`, `gamma.yaml`. |
 | Checkpoint and seed stability | `configs/ablations/checkpoint/` | `steps.yaml`, `seed_stability.yaml`. |
 | MLR protocol sensitivity | `configs/ablations/` and the MLR evaluator | `tau_occ in {0.10, 0.15, 0.20, 0.25}` times `k in {1, 2, 3}`. |
@@ -220,6 +194,4 @@ records the settings that produced it alongside the item-level output, so the
 provenance of a measurement is recoverable from
 `outputs/evaluation/item_level/<benchmark>/`.
 
-Generation is stochastic, so a re-run reproduces the protocol and the
-qualitative ordering rather than the exact decimals; the Wilson interval
-printed with every summary covers the spread between near-tied runs.
+The Wilson interval describes binomial uncertainty over eligible clips.

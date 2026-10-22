@@ -62,8 +62,8 @@ ranking **6th in JEPA Similarity** and **17th overall**.
 - [x] IGR training pipeline
 - [x] TIA alignment module
 - [x] MLR evaluation protocol
-- [x] DreamGen / WorldArena / EWMBench / RoboTwin evaluation entry points
-- [x] paper-protocol reproduction entry points
+- [x] DreamGen / WorldArena / EWMBench evaluation entry points
+- [x] reproduction scripts listed below
 - [x] the item-level evaluation-row schema in [`docs/item_level.md`](docs/item_level.md)
 - [x] environment and third-party-backbone setup scripts
 - [x] the project page and its qualitative media (served from the `gh-pages` branch)
@@ -89,30 +89,21 @@ conda activate eveworld-eval
 pip install -e ".[eval]"
 ```
 
-### FlowWAM / RoboTwin
-
-```bash
-conda env create -f envs/flowwam.yaml
-conda activate flowwam
-pip install -e ".[train,eval]"
-```
-
 The first end-to-end reproduction is `bash scripts/reproduce/table1_dreamgen.sh`; the full artifact map is in [Reproducing the paper](#reproducing-the-paper).
 
 ### Reference compute
 
-The main paper setting uses 8× NVIDIA H20Z GPUs with an effective batch size of 64. Reproduction requirements differ across evaluation-only, GigaWorld, and FlowWAM workflows; see `docs/installation.md` and `docs/reproduction.md` for per-task requirements.
+The main paper setting uses 8× NVIDIA H20Z GPUs with an effective batch size of 64. Reproduction requirements differ across evaluation-only and GigaWorld workflows; see `docs/installation.md` and `docs/reproduction.md` for per-task requirements.
 
 ## Backbone setup
 
-EVEWorld integrates with GigaWorld-0 for the main DreamGen setting and FlowWAM for the cross-backbone RoboTwin experiments. Upstream source trees and weights are not redistributed in this repository.
+The main DreamGen setting uses GigaWorld-0. Upstream source trees and weights are not redistributed in this repository.
 
 ```bash
 bash scripts/setup/clone_gigaworld.sh   # -> third_party/giga-world-0
-bash scripts/setup/clone_flowwam.sh     # -> third_party/FlowWAM
 ```
 
-GigaWorld-0 comes from <https://github.com/open-gigaai/giga-world-0>. Both scripts accept a destination argument and a `--ref` override, and both checkout directories are gitignored. `clone_gigaworld.sh` also installs the `giga-train` and `giga-datasets` packages, which are not on PyPI. FlowWAM training starts from the released Stage-1 checkpoint on top of the Wan2.2-TI2V-5B base; both are fetched by `bash scripts/setup/download_models.sh`. See [`docs/third_party.md`](docs/third_party.md) and [`third_party/README.md`](third_party/README.md) for the weight table and licenses.
+GigaWorld-0 comes from <https://github.com/open-gigaai/giga-world-0>. The script accepts a destination argument and a `--ref` override; the checkout directory is gitignored. `clone_gigaworld.sh` also installs the `giga-train` and `giga-datasets` packages, which are not on PyPI. See [`docs/third_party.md`](docs/third_party.md) and [`third_party/README.md`](third_party/README.md) for the weight table and licenses.
 
 ## Method
 
@@ -130,14 +121,13 @@ See [`docs/training.md`](docs/training.md) for training schedules and implementa
 
 ## Reproducing the paper
 
-Each paper artifact has a script under `scripts/reproduce/`:
+The following scripts are available under `scripts/reproduce/`:
 
 | Paper artifact | Command | Output |
 |---|---|---|
 | Table 1 · DreamGenBench | `bash scripts/reproduce/table1_dreamgen.sh` | `outputs/evaluation/item_level/dreamgen/` |
 | Table 3 · WorldArena 1.0 | `bash scripts/reproduce/table3_worldarena.sh` | `outputs/evaluation/item_level/worldarena/` |
 | Table 4 · EWMBench (AgiBot) | `bash scripts/reproduce/table4_ewmbench.sh` | `outputs/evaluation/item_level/ewmbench/` |
-| Table 5 · RoboTwin (FlowWAM) | `bash scripts/reproduce/table5_robotwin.sh` | `outputs/evaluation/item_level/robotwin/table5.json` |
 | Table 6 · Component ablation | `bash scripts/reproduce/table6_ablation.sh` | `outputs/evaluation/item_level/dreamgen/` |
 | Figure 4 · CFG grid | `bash scripts/reproduce/figure4_cfg.sh` | grid cells under `${GRID_ROOT}`; summaries under `outputs/evaluation/item_level/dreamgen/` |
 
@@ -152,13 +142,13 @@ EVEWorld/
 ├── configs/       training, evaluation, and ablation run configurations
 ├── data/          splits, per-clip metadata, and judge prompts (datasets stay outside the repo)
 ├── docs/          installation, data, training, inference, evaluation, reproduction, checkpoints, third party
-├── envs/          conda environment files (gigaworld, flowwam, eveworld-eval)
+├── envs/          conda environment files (gigaworld, eveworld-eval)
 ├── experiments/   alternative supervision designs and the analyses behind the paper figures
 ├── outputs/       evaluation outputs of the reproduction scripts (gitignored)
 ├── scripts/       setup, prepare, train, inference, evaluate, and reproduce entry points
 ├── src/eveworld/  the library: IGR, TIA, data tooling, integrations, and evaluation
 ├── tests/         unit tests for the IGR, TIA, and MLR components
-└── third_party/   clone instructions for the two backbones (checkouts are gitignored)
+└── third_party/   GigaWorld-0 clone instructions (checkouts are gitignored)
 ```
 
 ## Documentation
@@ -201,4 +191,4 @@ EVEWorld builds on the GigaWorld-0 and FlowWAM backbones, and relies on Groundin
 
 ## Contributing
 
-Contributions are welcome; see [`CONTRIBUTING.md`](CONTRIBUTING.md). The unit tests run with `pytest -q`, and the formatting and lint hooks with `pre-commit run --all-files`; the `tests` workflow runs both on every push.
+Contributions are welcome; see [`CONTRIBUTING.md`](CONTRIBUTING.md). The unit tests run with `pytest -q`, and the formatting and lint hooks with `pre-commit run --all-files`.

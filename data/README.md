@@ -3,22 +3,19 @@
 Split files, per-clip metadata and judge templates for the benchmarks of the paper.
 This directory holds text only. The clips, decoded frames and caches stay under the
 dataset roots named by the `.env` variables (`DREAMGEN_DATA_ROOT`, `AGIBOT_DATA_ROOT`,
-`ROBOTWIN_DATA_ROOT`, `WORLDARENA_DATA_ROOT`), so nothing binary is committed here and
+`WORLDARENA_DATA_ROOT`), so nothing binary is committed here and
 the split files are meaningful on their own: a split row names a clip, it does not carry it.
 
 ## Layout
 
 `prepare_dreamgen.py` regenerates the three DreamGenBench files, `prepare_agibot.py` the AgiBot
-splits, `build_mlr_metadata.py` the four WorldArena ones and `prepare_robotwin.py` the two
-RoboTwin splits:
+splits, and `build_mlr_metadata.py` the WorldArena files:
 
 - `splits/dreamgen/train.txt` — the 92 GR1 fine-tuning clips that post-train the GigaWorld-0 arms.
 - `splits/dreamgen/val.txt` — 12 clips held out of the post-training set for checkpoint selection.
 - `splits/dreamgen/test.txt` — the 126 DreamGenBench clips behind the evaluation prompts.
 - `splits/worldarena/eval.txt` — the 1,000 requests of the frozen WorldArena 1.0 manifest.
 - `splits/worldarena/train.txt` — 16 requests that froze the detector thresholds and occlusion rule.
-- `splits/robotwin/heldout.txt` — 250 held-out episodes, 50 tasks x episodes 45-49.
-- `splits/robotwin/dev.txt` — the episode-45 slice, 50 rows, used to screen checkpoints.
 - `metadata/dreamgenbench/target_queries.json` — prompt, target, source and destination per clip.
 - `metadata/dreamgenbench/eligible_ids.json` — the 63 clips of the eligible set `U_63`.
 - `metadata/worldarena/parsed_targets.json` — prompt, target and mover per request.
@@ -46,11 +43,6 @@ Laziness Rate; `train.txt` is not a training set but the 16 requests whose detec
 thresholds were frozen before the final evaluation, and the remaining requests are evaluated
 with that frozen protocol.
 
-**RoboTwin.** `heldout.txt` lists 250 rows, `task_<task>_episode_<45..49>` for each of the 50
-tasks, ordered by task and then by episode; the 250 rows are held out of training. `dev.txt`
-is the episode-45 row of every task: a 50-row screen that is disjoint from the 200
-confirmation rows of episodes 46-49 and from the 2,250 training episodes of episodes 0-44.
-
 ## Metadata
 
 The metadata carries what the prompts do not: which object an instruction asks for, which
@@ -74,11 +66,10 @@ text and can be replaced without touching the runner.
 ```bash
 python scripts/prepare/prepare_dreamgen.py --data-root "$DREAMGEN_DATA_ROOT" --output-dir data
 python scripts/prepare/prepare_agibot.py  --data-root "$AGIBOT_DATA_ROOT"  --output-dir data
-python scripts/prepare/prepare_robotwin.py --data-root "$ROBOTWIN_DATA_ROOT" --output-dir data
 python scripts/prepare/build_mlr_metadata.py --data-root "$WORLDARENA_DATA_ROOT" --output-dir data
 ```
 
-All four scripts take `--data-root`, `--output-dir` (default `data`) and `--limit` for a smoke
+All three scripts take `--data-root`, `--output-dir` (default `data`) and `--limit` for a smoke
 run. `prepare_dreamgen.py` also builds the IGR annotations of the training clips, and
 `build_mlr_metadata.py` writes the expected instance counts that the evaluator compares
 against. See [`../docs/data_preparation.md`](../docs/data_preparation.md) for the upstream

@@ -1,21 +1,12 @@
 # Third-Party Backbones
 
-EVEWorld is a supervision recipe, not a backbone. Both backbones it is applied
-to stay upstream, and the repository only holds the glue: hooks, corruption
-builders, correspondence adapters and the training/evaluation entry points that
-live under [`src/eveworld/integrations/`](../src/eveworld/integrations/).
-
-Neither directory below is tracked here — the root `.gitignore` drops
-`third_party/giga-world-0/` and `third_party/FlowWAM/` — so clone them after
-checking out this repository:
+Clone GigaWorld-0 into the gitignored `third_party/giga-world-0/` directory:
 
 ```bash
-bash scripts/setup/clone_gigaworld.sh   # -> third_party/giga-world-0
-bash scripts/setup/clone_flowwam.sh     # -> third_party/FlowWAM
+bash scripts/setup/clone_gigaworld.sh
 ```
 
-Both scripts accept a destination argument and a `--ref` override if you want a
-different revision than the pinned one.
+The script accepts a destination argument and a `--ref` override.
 
 ## GigaWorld-0
 
@@ -31,18 +22,6 @@ different revision than the pinned one.
   ```
 
 - The backbone is Apache-2.0; see the `LICENSE` inside the checkout.
-
-## FlowWAM
-
-- Upstream: <https://github.com/YixiangChen515/FlowWAM> (Wan2.2-TI2V-5B based)
-- Role: the cross-backbone experiment. IGR and TIA are ported to FlowWAM and
-  evaluated on held-out RoboTwin episodes, with the reference protocol in
-  [`docs/reproduction.md`](../docs/reproduction.md) and the metric stack in
-  [`src/eveworld/evaluation/robotwin/`](../src/eveworld/evaluation/robotwin/).
-- Training starts from the released **FlowWAM Stage-1** checkpoint plus the
-  Wan2.2-TI2V-5B base weights; generation and metrics import from the checkout,
-  so point `FLOWWAM_ROOT` at the clone (or leave it unset and keep the default
-  `third_party/FlowWAM`).
 
 ## Other external tools
 

@@ -103,7 +103,6 @@ python scripts/prepare/prepare_dreamgen.py --data-root "$DREAMGEN_DATA_ROOT" --o
 python scripts/prepare/build_mlr_metadata.py --data-root "$WORLDARENA_DATA_ROOT" --output-dir data
 ```
 
-`prepare_agibot.py` and `prepare_robotwin.py` write the splits of the other two datasets and need
-no metadata. All four scripts take `--data-root`, `--output-dir` (default `data`) and `--limit`
+`prepare_agibot.py` writes the AgiBot splits. All three scripts take `--data-root`, `--output-dir` (default `data`) and `--limit`
 for a smoke run. The upstream layouts the roots must have are described in
 [`../../docs/data_preparation.md`](../../docs/data_preparation.md).

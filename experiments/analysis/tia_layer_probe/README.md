@@ -22,8 +22,7 @@ selection criterion: the block with the lowest mean EPE wins. Because feature
 reliability can differ across domains and backbone architectures, the probe
 reports a setting-specific consistency-reliability score next to EPE, defined
 per setting as object--background separation for GigaWorld-0/DreamGen,
-static-feature stability for AgiBot, and moving-pair top-1 hit rate for
-FlowWAM.
+static-feature stability for AgiBot.
 
 ## How it was run
 

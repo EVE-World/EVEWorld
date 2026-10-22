@@ -32,10 +32,10 @@ pip install -e ".[dev]"
 pre-commit install
 ```
 
-[`docs/installation.md`](docs/installation.md) describes the other two
-environments (`gigaworld`, `flowwam`), the extras that pull in the training and
+[`docs/installation.md`](docs/installation.md) describes the training
+environment (`gigaworld`), the extras that pull in the training and
 evaluation stacks, and the environment variables. The `dev` extra adds pytest
-and pre-commit, and any of the three environments can host development, because
+and pre-commit, and either environment can host development, because
 `pip install -e .` links the checkout from `src/` instead of copying it.
 
 ## Style and hooks
