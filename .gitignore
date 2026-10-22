@@ -81,6 +81,19 @@ _tmp/
 /third_party/giga-world-0/
 /third_party/FlowWAM/
 
+/configs/paper/flowwam/
+/src/eveworld/integrations/flowwam/
+/src/eveworld/evaluation/robotwin/
+/data/splits/robotwin/
+/configs/eval/mlr/robotwin.yaml
+/envs/flowwam.yaml
+/scripts/evaluate/eval_robotwin.py
+/scripts/inference/infer_flowwam.py
+/scripts/prepare/prepare_robotwin.py
+/scripts/reproduce/table5_robotwin.sh
+/scripts/setup/clone_flowwam.sh
+/scripts/train/train_flowwam.py
+
 # --- Pre-restructure layout, superseded by src/eveworld and scripts ---
 /eveworld/
 /benchmarks/

@@ -24,9 +24,6 @@ ONLY=()
 MODELS=(
     "giga-world-0-video-pretrain-2b|open-gigaai/GigaWorld-0-Video-Pretrain-2b|giga-world-0-video-pretrain-2b"
     "giga-world-0-video-gr1-2b|open-gigaai/GigaWorld-0-Video-GR1-2b|giga-world-0-video-gr1-2b"
-    "wan2.2-ti2v-5b|Wan-AI/Wan2.2-TI2V-5B-Diffusers|wan2.2-ti2v-5b"
-    "flowwam-stage1|YixiangChen/FlowWAM|flowwam"
-    "flowwam-robotwin|YixiangChen/FlowWAM|flowwam"
     "grounding-dino-swin-t-ogc|ShilongLiu/GroundingDINO|groundingdino"
     "sam2.1-hiera-large|facebook/sam2.1-hiera-large|sam2"
     "sam2.1-hiera-tiny|facebook/sam2.1-hiera-tiny|sam2"
@@ -38,12 +35,6 @@ includes_for() {
     case "$1" in
         giga-world-0-video-pretrain-2b|giga-world-0-video-gr1-2b)
             echo "transformer/config.json transformer/diffusion_pytorch_model.safetensors"
-            ;;
-        flowwam-stage1)
-            echo "flowwam_worldarena_stage1.safetensors"
-            ;;
-        flowwam-robotwin)
-            echo "flowwam_robotwin.safetensors flowwam_robotwin_action_norm_stats.npz"
             ;;
         grounding-dino-swin-t-ogc)
             echo "groundingdino_swint_ogc.pth GroundingDINO_SwinT_OGC.cfg.py"

@@ -5,9 +5,9 @@ the config dataclass, the checkpoint loader, the dataset that yields IGR-ready
 samples, the trainer and the layer hooks used to attach TIA.
 """
 
-_SUBMODULES = frozenset({"gigaworld", "flowwam"})
+_SUBMODULES = frozenset({"gigaworld"})
 
-__all__ = ["flowwam", "gigaworld"]
+__all__ = ["gigaworld"]
 
 
 def __getattr__(name):

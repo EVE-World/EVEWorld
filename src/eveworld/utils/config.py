@@ -122,7 +122,7 @@ def resolve_path(
     """Expand ``~`` and ``$VAR`` / ``${VAR}`` references in a configured path.
 
     Configs point at the environment for everything that lives outside the checkout, e.g.
-    ``data_root: ${ROBOTWIN_DATA_ROOT}``. A variable that is not set is left in place rather than
+    ``data_root: ${DREAMGEN_DATA_ROOT}``. A variable that is not set is left in place rather than
     silently removed, so the caller notices the unresolved name.
 
     Args:

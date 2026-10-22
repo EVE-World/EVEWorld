@@ -1,6 +1,6 @@
 # Ablation: TIA noise gate (paper app:tia_details).
 # With the gate on, the TIA term is applied only at noise levels sigma in [0.2, 0.5]; with
-# the gate off the term is active at every sigma. FlowWAM uses no gate at all.
+# the gate off the term is active at every sigma.
 name: ablate_tia_gate
 seed: 42
 output_dir: outputs/${name}

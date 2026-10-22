@@ -1,8 +1,7 @@
 """Qwen instruction-following judge for Table 1 and Table 6.
 
 The judge is shown a handful of frames spread over the clip and asked one binary question: does
-the clip follow the instruction? The same protocol is also used on the held-out RoboTwin
-instructions of Table 6. Cost is dominated by the image tokens, so the clips are reduced to
+the clip follow the instruction? Cost is dominated by the image tokens, so the clips are reduced to
 :data:`DEFAULT_FRAME_COUNT` frames whose longest side is at most :data:`DEFAULT_MAX_SIDE` pixels
 before they are sent as JPEG data URLs.
 

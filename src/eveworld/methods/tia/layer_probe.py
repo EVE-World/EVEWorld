@@ -4,7 +4,7 @@ The block is chosen by an offline experiment rather than by training. For every 
 tokens of frame ``t`` are matched against the tokens of frame ``t + 1`` by bare nearest neighbour
 on the block's normalised features, and the end-point error against the benchmark's ground-truth
 correspondences is averaged over all tracked points. The paper's sweep over blocks 8-26 selected
-block 23 for GigaWorld-0/AgiBot and block 12 for FlowWAM.
+block 23 for GigaWorld-0/AgiBot.
 """
 
 from __future__ import annotations

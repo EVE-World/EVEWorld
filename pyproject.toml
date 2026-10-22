@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Backbone fine-tuning (GigaWorld-0 / FlowWAM training entry points).
+# Backbone fine-tuning.
 train = [
     "torch>=2.1",
     "torchvision",
@@ -71,6 +71,7 @@ Repository = "https://github.com/EVE-World/EVEWorld"
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["eveworld*"]
+exclude = ["eveworld.integrations.flowwam*", "eveworld.evaluation.robotwin*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

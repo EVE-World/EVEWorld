@@ -1,13 +1,12 @@
 """Evaluation: the MLR metric and the wrappers around the external benchmarks."""
 
-_SUBMODULES = frozenset({"mlr", "instruction_following", "robotwin", "pbench", "ewmbench", "worldarena"})
+_SUBMODULES = frozenset({"mlr", "instruction_following", "pbench", "ewmbench", "worldarena"})
 
 __all__ = [
     "ewmbench",
     "instruction_following",
     "mlr",
     "pbench",
-    "robotwin",
     "worldarena",
 ]
 

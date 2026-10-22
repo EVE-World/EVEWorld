@@ -8,14 +8,13 @@ The package is organised in four layers:
     :mod:`~eveworld.methods.tia` -- together with the joint objective that
     trains them.
 ``eveworld.integrations``
-    Thin adapters wiring those methods into the two video world models we build
-    on, GigaWorld-0 and FlowWAM.
+    Adapters wiring those methods into GigaWorld-0.
 ``eveworld.data``
     Instruction parsing, open-vocabulary grounding, instance tracking and the
     video/latent transforms shared by training, inference and evaluation.
 ``eveworld.evaluation``
     The Model Laziness Rate (MLR) metric and wrappers for the
-    external benchmarks (DreamGenBench, WorldArena, EWMBench, PBench, RoboTwin).
+    external benchmarks (DreamGenBench, WorldArena, EWMBench, PBench).
 
 Submodules are resolved lazily, so ``import eveworld`` stays cheap and does not
 drag in a deep-learning framework by itself.

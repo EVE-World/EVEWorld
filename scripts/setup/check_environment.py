@@ -70,10 +70,7 @@ EVALUATION_PACKAGES = (
     ("google.genai", "google-genai"),
 )
 
-CHECKOUTS = (
-    ("third_party/giga-world-0", "GigaWorld-0 backbone", "scripts/setup/clone_gigaworld.sh"),
-    ("third_party/FlowWAM", "FlowWAM backbone", "scripts/setup/clone_flowwam.sh"),
-)
+CHECKOUTS = (("third_party/giga-world-0", "GigaWorld-0 backbone", "scripts/setup/clone_gigaworld.sh"),)
 
 CHECKPOINT_FILES = (
     ("GROUNDING_DINO_WEIGHTS", "GroundingDINO detector weights"),
@@ -89,7 +86,6 @@ FALLBACK_ENV_KEYS = (
     "GIGA_MODELS_DIR",
     "GIGA_MODELS_CACHE",
     "GIGA_MODELS_REPO_CACHE",
-    "FLOWWAM_ROOT",
     "GROUNDING_DINO_CONFIG",
     "GROUNDING_DINO_WEIGHTS",
     "SAM2_CHECKPOINT",
@@ -98,7 +94,6 @@ FALLBACK_ENV_KEYS = (
     "QWEN_IF_MODEL",
     "DREAMGEN_DATA_ROOT",
     "AGIBOT_DATA_ROOT",
-    "ROBOTWIN_DATA_ROOT",
     "WORLDARENA_DATA_ROOT",
 )
 

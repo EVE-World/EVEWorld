@@ -9,8 +9,7 @@ where `L_IGR` is the restoration term of `eq:pipeline`
 computed on the post-transport features. Only the schedule and the noise gate of
 `lambda_TIA` live here: on GigaWorld-0 the weight warms up linearly from 0 to 0.5 over the
 first 20 steps, and the gate restricts the term to sampled noise levels `sigma in [0.2,
-0.5]`, where the transport is informative but the input is not yet clean; FlowWAM keeps
-`lambda_TIA = 0.1` with no gate. The released values are `method.warmup_steps`,
+0.5]`, where the transport is informative but the input is not yet clean. The released values are `method.warmup_steps`,
 `method.sigma_low`, `method.sigma_high` and `method.gated`.
 
 The TIA term is passed in by the trainer rather than computed here, so importing this
@@ -40,14 +39,12 @@ class JointConfig:
     Attributes:
         p_dup: Probability that a sample is count-edited rather than relocated, the
             `method.p_dup` of `alg:igr_construction`, `0.5` in the released runs.
-        lambda_tia: Weight of the TIA term at full warm-up, `0.5` on GigaWorld-0 and `0.1`
-            on FlowWAM.
+        lambda_tia: Weight of the TIA term at full warm-up, `0.5` on GigaWorld-0.
         warmup_steps: Steps over which `lambda_tia` warms up linearly from 0, `20` on
             GigaWorld-0 and `0` for a constant weight.
         sigma_low: Lower end of the noise-gate window, inclusive.
         sigma_high: Upper end of the noise-gate window, inclusive.
-        gated: Whether the noise gate is applied at all. `False` for FlowWAM and for the
-            single-term arms.
+        gated: Whether the noise gate is applied at all. `False` for the single-term arms.
 
     Raises:
         ValueError: If a probability, weight or window is out of range.
@@ -118,8 +115,7 @@ def combine(
         tia_loss: Scalar transport-consistency loss, or `None` for a run that trains the
             restoration term alone. `None` contributes a zero tensor, so the returned total
             keeps the dtype and device of `igr_loss`.
-        lambda_tia: Weight of the TIA term at full warm-up, e.g. `0.5` on GigaWorld-0 and
-            `0.1` on FlowWAM.
+        lambda_tia: Weight of the TIA term at full warm-up, e.g. `0.5` on GigaWorld-0.
         step: Current optimisation step, counted from 0.
         warmup_steps: Steps over which `lambda_tia` warms up linearly from 0; at most `0`
             uses the full weight from the first step.
@@ -127,7 +123,7 @@ def combine(
             hand - leaves the gate open.
         sigma_low: Lower end of the noise-gate window, inclusive, `0.2` on GigaWorld-0.
         sigma_high: Upper end of the noise-gate window, inclusive, `0.5` on GigaWorld-0.
-        gated: Whether to apply the gate. Pass `False` for a run without one, as on FlowWAM,
+        gated: Whether to apply the gate. Pass `False` for a run without one,
             and for a clip whose target could not be tracked, which is trained on the clean
             video with a unit weight map.
 
