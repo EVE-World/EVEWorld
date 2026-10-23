@@ -78,7 +78,7 @@ Generate the 126 DreamGenBench request ids with the step-250 checkpoint, one
 shard per GPU:
 
 ```bash
-CKPT="${EVEWORLD_CHECKPOINT_ROOT:-checkpoints}/dreamgen_eveworld/checkpoint-250.pt"
+CKPT="outputs/dreamgen_eveworld/checkpoint-000250.pt"
 
 for i in $(seq 0 7); do
     CUDA_VISIBLE_DEVICES=$i python scripts/inference/infer_gigaworld.py \

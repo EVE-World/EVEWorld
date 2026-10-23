@@ -32,11 +32,9 @@ pip install -e ".[dev]"
 pre-commit install
 ```
 
-[`docs/installation.md`](docs/installation.md) describes the training
-environment (`gigaworld`), the extras that pull in the training and
-evaluation stacks, and the environment variables. The `dev` extra adds pytest
-and pre-commit, and either environment can host development, because
-`pip install -e .` links the checkout from `src/` instead of copying it.
+The `dev` extra installs pytest and pre-commit. Editable installation uses the
+source in `src/` directly. See [`docs/installation.md`](docs/installation.md)
+for training dependencies and environment variables.
 
 ## Style and hooks
 

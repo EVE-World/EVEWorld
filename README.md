@@ -131,7 +131,7 @@ The following scripts are available under `scripts/reproduce/`:
 | Table 6 · Component ablation | `bash scripts/reproduce/table6_ablation.sh` | `outputs/evaluation/item_level/dreamgen/` |
 | Figure 4 · CFG grid | `bash scripts/reproduce/figure4_cfg.sh` | grid cells under `${GRID_ROOT}`; summaries under `outputs/evaluation/item_level/dreamgen/` |
 
-See [`docs/reproduction.md`](docs/reproduction.md) for inputs, compute requirements, and per-artifact protocols. Quantitative and qualitative results are on the [project page](https://eve-world.github.io/EVEWorld/) and in the paper; the protocols, metrics, and judge details are in [`docs/evaluation.md`](docs/evaluation.md).
+See [`docs/reproduction.md`](docs/reproduction.md) for inputs, compute requirements, and per-artifact protocols, and [`docs/evaluation.md`](docs/evaluation.md) for metrics and judge details.
 
 ## Repository structure
 

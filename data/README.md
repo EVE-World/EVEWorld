@@ -1,10 +1,8 @@
 # Data
 
-Split files, per-clip metadata and judge templates for the benchmarks of the paper.
-This directory holds text only. The clips, decoded frames and caches stay under the
-dataset roots named by the `.env` variables (`DREAMGEN_DATA_ROOT`, `AGIBOT_DATA_ROOT`,
-`WORLDARENA_DATA_ROOT`), so nothing binary is committed here and
-the split files are meaningful on their own: a split row names a clip, it does not carry it.
+Split manifests, per-clip metadata and judge templates. Clips, decoded frames and
+caches live under `DREAMGEN_DATA_ROOT`, `AGIBOT_DATA_ROOT` and
+`WORLDARENA_DATA_ROOT`; each split row identifies a clip in those datasets.
 
 ## Layout
 

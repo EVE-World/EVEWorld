@@ -232,10 +232,7 @@ def print_plan(plan: RunPlan) -> None:
 def instantiate(cls: Any, **kwargs: Any) -> Any:
     """Instantiate ``cls`` with the keyword arguments it declares.
 
-    The datasets and trainers of an integration read the parsed run config plus the paths a
-    release run overrides. Passing the arguments the installed class accepts, and dropping
-    the rest, keeps the script aligned with the class when a run leaves some of them at
-    their defaults.
+    Classes with ``**kwargs`` receive every argument; otherwise, undeclared keys are omitted.
     """
     parameters = inspect.signature(cls).parameters
     if any(item.kind is inspect.Parameter.VAR_KEYWORD for item in parameters.values()):

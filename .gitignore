@@ -75,7 +75,6 @@ _tmp/
 
 # --- Third-party backbones: clone them next to this checkout, never vendor them ---
 #   https://github.com/open-gigaai/giga-world-0   -> third_party/giga-world-0
-#   FlowWAM (see third_party/README.md)           -> third_party/FlowWAM
 /giga-models/
 /giga-world-0/
 /third_party/giga-world-0/

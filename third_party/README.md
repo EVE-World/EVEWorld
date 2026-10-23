@@ -6,7 +6,8 @@ Clone GigaWorld-0 into the gitignored `third_party/giga-world-0/` directory:
 bash scripts/setup/clone_gigaworld.sh
 ```
 
-The script accepts a destination argument and a `--ref` override.
+The script accepts a destination argument and a `--ref` override. Use `--no-deps`
+to skip installing the upstream training and dataset packages.
 
 ## GigaWorld-0
 

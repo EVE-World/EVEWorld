@@ -13,10 +13,10 @@ trains on. The adapter of the disturbed items is trained jointly with the denois
 
 The released recipe fine-tunes the backbone with CAME-8bit; :func:`build_optimizer` builds it
 when `came_pytorch` is importable and otherwise falls back to AdamW with the same schedule
-constants, so a run without the package still steps. `scripts/train/train_gigaworld.py` hands
-the trainer the `model` block, the dataset and the output directory, so the trainer reads the
-geometry from its configuration and the joint weights from the `method` block it is given, and
-the step count from `model.max_steps`.
+constants, so a run without the package still steps. `scripts/train/train_gigaworld.py` passes
+the full run config, dataset and output directory. The trainer reads geometry from `model`
+and method settings from `method`; the entry point passes the resolved `train` settings,
+including `train.max_steps`, as constructor arguments.
 
 A released clip is 93 frames at 768x480, which cannot be stepped without the checkpoint of the
 backbone. :meth:`GigaWorldTrainer.dry_run` steps the same loop at the reduced geometry

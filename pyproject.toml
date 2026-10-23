@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Backbone fine-tuning.
+# Training dependencies.
 train = [
     "torch>=2.1",
     "torchvision",
@@ -40,7 +40,7 @@ train = [
     "tensorboard",
     "fairscale",
 ]
-# Model Laziness Rate, instruction following and the benchmark harnesses.
+# Evaluation dependencies.
 eval = [
     "torch>=2.1",
     "torchvision",
@@ -59,6 +59,7 @@ eval = [
     "openai>=1.30",
     "google-genai>=1.0",
 ]
+# Development tools.
 dev = [
     "pytest>=7.4",
     "pre-commit>=3.6",

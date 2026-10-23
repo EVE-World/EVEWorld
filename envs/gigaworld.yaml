@@ -1,12 +1,10 @@
-# Training / inference environment for the GigaWorld-0 backbone
-# (DreamGen and AgiBot recipes).
+# GigaWorld-0 training and inference for DreamGen and AgiBot.
 #
 #   conda env create -f envs/gigaworld.yaml
 #   conda activate gigaworld
 #   pip install -e .
 #
-# GigaWorld-0 additionally needs the upstream training framework and dataset
-# packages, which are not on PyPI:
+# Install the upstream training and dataset packages from GitHub:
 #   pip install git+https://github.com/open-gigaai/giga-train.git
 #   pip install git+https://github.com/open-gigaai/giga-datasets.git
 name: gigaworld

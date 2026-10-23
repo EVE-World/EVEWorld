@@ -1,8 +1,7 @@
 # Checkpoints
 
-The default destination of every released weight the repository reads. No weight is ever
-committed: `.gitignore` keeps `/checkpoints/*` out of version control and un-ignores this file, so
-the tracked tree carries the download instructions and the files themselves stay on disk.
+Downloaded weights default to this directory. `.gitignore` excludes the weight files
+and keeps this README tracked.
 
 [`scripts/setup/download_models.sh`](../scripts/setup/download_models.sh) is the single entry
 point. It honours `EVEWORLD_CHECKPOINT_ROOT`, which defaults to `checkpoints`, and the table below

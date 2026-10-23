@@ -1,10 +1,7 @@
 # TIA layer probe: choosing the attachment block by adjacent-frame matching
 
-The TIA temporal adapter attaches to one Transformer block, and the first
-question the route has to answer is which block that should be. Fixing the
-attachment point heuristically would confound the consistency result with the
-layer choice, so the block is selected offline by a probe that scores every
-candidate layer and is run once per setting.
+An offline probe selects the Transformer block for the TIA adapter. Run it once
+per setting and choose the candidate with the lowest mean endpoint error.
 
 ## The probe
 

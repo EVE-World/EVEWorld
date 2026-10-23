@@ -1,4 +1,4 @@
-"""Method isolation and checkpoint compatibility on the CPU stand-in backbone."""
+"""CPU training, method selection and checkpoint round-trip tests."""
 
 import importlib.util
 import sys
